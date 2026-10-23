@@ -188,6 +188,7 @@ async function refresh() {
   try { state = await api('/api/state'); await refreshEvents(); renderState(); $('server-error').hidden = true; }
   catch (error) {
     if(error.auth){$('server-error').hidden=true;return;}
+    $('server-error').querySelector('p').textContent = window.NFCCloud.enabled && error.message && !/fetch|network|timeout/i.test(error.message) ? `Не удалось обновить данные: ${error.message}` : 'Связь с сервером потеряна. Данные могут быть устаревшими.';
     $('server-error').hidden = false;
     for (const id of ['cycle-servo', 'stop-servo', 'read-rtc', 'connect', 'disconnect']) $(id).disabled = true;
     for (const id of ['overview-status','device-page-status']) { $(id).textContent='Сервер недоступен'; $(id).className='badge warning'; }
