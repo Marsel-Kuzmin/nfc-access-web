@@ -185,10 +185,18 @@ function renderState() {
 async function refresh() {
   if (refreshing) return;
   refreshing = true;
-  try { state = await api('/api/state'); await refreshEvents(); renderState(); $('server-error').hidden = true; }
+  try {
+    state = await api('/api/state'); renderState(); $('server-error').hidden = true;
+    try { await refreshEvents(); renderState(); }
+    catch (error) {
+      if(error.auth)throw error;
+      $('server-error').querySelector('p').textContent='Не удалось обновить журнал. Состояние платы получено; показаны последние события.';
+      $('server-error').hidden=false;
+    }
+  }
   catch (error) {
     if(error.auth){$('server-error').hidden=true;return;}
-    $('server-error').querySelector('p').textContent = window.NFCCloud.enabled && error.message && !/fetch|network|timeout/i.test(error.message) ? `Не удалось обновить данные: ${error.message}` : 'Связь с сервером потеряна. Данные могут быть устаревшими.';
+    $('server-error').querySelector('p').textContent = window.NFCCloud.enabled && error.message && !/fetch|network|timeout|timed\s*out/i.test(error.message) ? `Не удалось обновить данные: ${error.message}` : 'Сайт не получил ответ сервера. Данные могут быть устаревшими; это не подтверждает отключение ESP32.';
     $('server-error').hidden = false;
     for (const id of ['cycle-servo', 'stop-servo', 'read-rtc', 'connect', 'disconnect']) $(id).disabled = true;
     for (const id of ['overview-status','device-page-status']) { $(id).textContent='Сервер недоступен'; $(id).className='badge warning'; }
@@ -330,6 +338,7 @@ window.NFCCloud.ready.then(()=>{
   document.querySelector('#page-cards .table-foot>span:last-child').textContent='Изменения сохраняются в облаке';
   document.querySelector('#page-events .section-heading>.small-note').textContent='Время сервера, МСК · время RTC хранится отдельно';
   document.querySelector('.app-footer>span').textContent='NFC Access · облачный реестр';
+  document.querySelector('#page-device .page-heading').append($('device-page-status'));
   document.querySelector('#page-device .device-grid>.panel:first-child').hidden=true;
   document.querySelector('#page-device .device-grid').style.gridTemplateColumns='1fr';
   document.querySelector('.console-panel h2').textContent='Обмен с облаком';document.querySelector('.console-panel .section-heading>.mono').textContent='HTTPS / до 30 секунд';
@@ -338,6 +347,7 @@ window.NFCCloud.ready.then(()=>{
   const option=document.createElement('option');option.value='network';option.textContent='ESP32 · интернет';$('events-source').options[1].textContent='ESP32 · USB';$('events-source').append(option);
   refresh();
 }).catch(error=>{$('server-error').hidden=false;$('server-error').querySelector('p').textContent=error.message;});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+window.addEventListener('online',()=>refresh());
 showPage(); updateClock(); refresh(); setInterval(()=>{if(!document.hidden)refresh();},5000); setInterval(updateClock,10000);
 });
-
