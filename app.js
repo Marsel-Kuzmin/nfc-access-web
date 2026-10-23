@@ -118,10 +118,10 @@ function eventQuery() { return new URLSearchParams({ search: $('events-search').
 async function refreshEvents() {
   const revision = ++eventsRevision;
   const query = eventQuery();
-  const [recent, all] = await Promise.all([api('/api/events?limit=4&kind=scan'), api(`/api/events?${query}`)]);
+  const [recent, all] = await Promise.all([api('/api/events?limit=4&kind=scan'), page==='events' ? api(`/api/events?${query}`) : Promise.resolve(null)]);
   if (revision !== eventsRevision) return;
   recentScans = recent;
-  renderEvents(recent, 'recent-events', true); renderEvents(all, 'all-events');
+  renderEvents(recent, 'recent-events', true); if(all!==null)renderEvents(all, 'all-events');
   $('export').href = `/api/export?${query}`;
 }
 function renderState() {
